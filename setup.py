@@ -14,7 +14,7 @@ setup(
     description=DESCRIPTION,
     long_description_content_type="text/markdown",
     packages=find_packages(),
-    install_requires=['selenium'],
+    install_requires=['selenium', 'webdriver_manager'],
     keywords=[],
     classifiers=[]
 )

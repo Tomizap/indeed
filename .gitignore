@@ -5,3 +5,5 @@
 /.idea/vcs.xml
 /.idea/Indeed.iml
 /.idea/.gitignore
+/build/
+/dist/
