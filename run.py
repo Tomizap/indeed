@@ -6,13 +6,9 @@ class AutoApply:
     def __init__(self, s):
         super(AutoApply, self).__init__()
         self.indeed = Indeed(s, name="indeed")
-        # self.linkedin = LinkedIn(s, name="linkedin")
-        # self.pole_emploie = PoleEmploie(s, name="pole-emploie")
 
     def start(self):
         self.indeed.application_loop()
-        # self.linkedin.application_loop()
-        # self.pole_emploie.application_loop()
 
     def end(self):
         pass

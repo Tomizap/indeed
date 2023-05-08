@@ -1,5 +1,4 @@
 import random
-import threading
 import time
 
 from selenium import webdriver
@@ -9,20 +8,17 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
 
-class Indeed(threading.Thread):
+class Indeed:
 
-    def __init__(self, setting, name=None):
-        super(Indeed, self).__init__(name=name)
-
+    def __init__(self, setting):
+        super(Indeed, self).__init__()
         self.setting = setting
         if self.setting['options']['DEBUG']:
             print('init Indeed')
-
         self.user = setting['user']
         self.inputs = self.setting['inputs']
         self.options = self.setting['options']
         self.presets = self.setting['presets']
-
         options = Options()
         options.add_experimental_option("detach", True)
         # options.add_argument("--headless=new")
@@ -75,6 +71,15 @@ class Indeed(threading.Thread):
             for i in range(15):
                 try:
                     self.driver.find_element(By.CSS_SELECTOR, "#emailform button").click()
+                    break
+                except:
+                    time.sleep(2)
+        # Pass Google
+        time.sleep(3)
+        if len(self.find_elements('#passpage')) > 0:
+            for i in range(10):
+                try:
+                    self.find_element('#auth-page-google-password-fallback').click()
                     break
                 except:
                     time.sleep(2)
