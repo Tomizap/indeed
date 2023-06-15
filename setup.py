@@ -10,11 +10,14 @@ setup(
     name="indeed",
     version=VERSION,
     author="TZ",
-    author_email="<zaptom@gmail.com>",
+    author_email="zaptom@gmail.com",
     description=DESCRIPTION,
     long_description_content_type="text/markdown",
     packages=find_packages(),
-    install_requires=['selenium', 'webdriver_manager'],
+    install_requires=[
+        'selenium',
+        'selenium_driver @ git+https://github.com/Tomizap/selenium_driver#egg=selenium_driver'],
+    dependency_links=[],
     keywords=[],
     classifiers=[]
 )

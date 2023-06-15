@@ -1,11 +1,8 @@
 import random
 import time
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver import Keys
+from selenium_driver import SeleniumDriver
 
 
 class Indeed:
@@ -19,104 +16,46 @@ class Indeed:
         self.inputs = self.setting['inputs']
         self.options = self.setting['options']
         self.presets = self.setting['presets']
-        options = Options()
-        options.add_experimental_option("detach", True)
-        # options.add_argument("--headless=new")
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        self.driver.maximize_window()
+        self.driver = SeleniumDriver()
         return
-
-    def find_element(self, selector):
-        return self.driver.find_element(By.CSS_SELECTOR, selector)
-
-    def find_elements(self, selector):
-        return self.driver.find_elements(By.CSS_SELECTOR, selector)
 
     # ---------------- LOGIN -------------------- #
 
-    def pass_captcha(self):
-        time.sleep(5)
-        if len(self.driver.find_elements(By.CSS_SELECTOR, ".pass-Captcha > *")) > 0:
-            if self.setting['options']['DEBUG']:
-                print('Indeed: Pass Captcha')
-            for i in range(15):
-                try:
-                    if "vérifié" in self.driver.find_element(By.CSS_SELECTOR, ".pass-Captcha #a11y-label").get_property('innerText').lower():
-                        print('try captcha')
-                        time.sleep(2)
-                    else:
-                        break
-                except:
-                    time.sleep(3)
-            return True
-        else:
-            return False
-
     def login(self):
-        if self.setting['options']['DEBUG']:
-            print('Indeed: Login')
-        self.driver.get('https://secure.indeed.com/auth')
-        time.sleep(3)
-        # Accept Cookies
-        self.driver.find_element(By.CSS_SELECTOR, "#onetrust-accept-btn-handler").click()
-        # Fill Email
-        for i in range(15):
-            try:
-                self.driver.find_element(By.CSS_SELECTOR, "#emailform input").send_keys(self.user['email'])
-                self.driver.find_element(By.CSS_SELECTOR, "#emailform button").click()
-                break
-            except:
-                time.sleep(2)
-        if self.pass_captcha():
-            for i in range(15):
-                try:
-                    self.driver.find_element(By.CSS_SELECTOR, "#emailform button").click()
-                    break
-                except:
-                    time.sleep(2)
-        # Pass Google
-        time.sleep(3)
-        if len(self.find_elements('#passpage')) > 0:
-            for i in range(10):
-                try:
-                    self.find_element('#auth-page-google-password-fallback').click()
-                    break
-                except:
-                    time.sleep(2)
-        # Fill Password
-        for i in range(15):
-            try:
-                self.driver.find_element(By.CSS_SELECTOR, "#loginform span input").click()
-                self.driver.find_element(By.CSS_SELECTOR, "#loginform span input").send_keys(self.user["password"])
-                self.driver.find_element(By.CSS_SELECTOR, "#loginform > button").click()
-                break
-            except:
-                time.sleep(2)
-        if self.pass_captcha():
-            for i in range(15):
-                try:
-                    self.driver.find_element(By.CSS_SELECTOR, "#loginform span input").click()
-                    self.driver.find_element(By.CSS_SELECTOR, "#loginform span input").send_keys(self.user["password"])
-                    self.driver.find_element(By.CSS_SELECTOR, "#loginform > button").click()
-                    break
-                except:
-                    time.sleep(2)
-        # SMS Verification
-        for i in range(80):
-            if len(self.driver.find_elements(By.CSS_SELECTOR, "#two-factor-auth-form")) > 0:
-                time.sleep(2)
-            else:
-                break
-        time.sleep(5)
+        while not self.driver.is_attached('#container > #app-root *'):
+            self.driver.get('https://secure.indeed.com')
+            # EMAIL
+            self.driver.write('#emailform input', self.user['email'])
+            self.driver.write('#emailform input', Keys.ENTER)
+            if self.driver.is_attached('#emailform'):
+                self.driver.write('#emailform input', self.user['email'])
+            time.sleep(3)
+            self.driver.click('#onetrust-accept-btn-handler')
+            self.driver.click('#auth-page-google-password-fallback')
+            while not self.driver.is_attached('#loginform'):
+                time.sleep(1)
+            # PASSWORD
+            self.driver.write('#loginform input[type="password"]',
+                              self.user['password'])
+            self.driver.write('#loginform input[type="password"]', Keys.ENTER)
+            if self.driver.is_attached('#loginform'):
+                self.driver.write('#loginform input[type="password"]',
+                                  self.user['password'])
+            while not self.driver.is_attached('#container > #app-root > *'):
+                time.sleep(1)
+            # PHONE
+            # while self.driver.is_attached('#two-factor-auth-form'):
+            #    time.sleep(1)
+        print('logged in !')
 
     # ---------------- GENERAL -------------------- #
 
     def close_popup(self):
         time.sleep(3)
-        if len(self.driver.find_elements(By.CSS_SELECTOR, "#mosaic-modal > *")) > 0:
+        if len(self.driver.find_elements("#mosaic-modal > *")) > 0:
             for i in range(5):
                 try:
-                    self.driver.find_element(By.CSS_SELECTOR, "#mosaic-modal > div > div > div.icl-Modal > div > button").click()
+                    self.driver.find_element("#mosaic-modal > div > div > div.icl-Modal > div > button").click()
                     break
                 except:
                     time.sleep(2)
@@ -124,19 +63,18 @@ class Indeed:
     # ---------------- JOBS APPLICATION -------------------- #
 
     def application_close(self):
-        if len(self.driver.window_handles) > 1:
-            p = self.driver.window_handles[0]
+        if len(self.driver.window_handles()) > 1:
+            p = self.driver.window_handles()[0]
             self.driver.close()
-            self.driver.switch_to.window(p)
+            self.driver.switch_to_window(p)
 
     def application_exit(self):
         try:
-            button = self.driver.find_elements(By.CSS_SELECTOR,
-                                               "#ia-container .ia-Navigation-exit.css-7pkb4x.eu4oa1w0 button")
+            button = self.driver.find_elements("#ia-container .ia-Navigation-exit.css-7pkb4x.eu4oa1w0 button")
             if len(button) > 0:
                 button[0].click()
             time.sleep(2)
-            button = self.find_elements(
+            button = self.driver.find_elements(
                 ".css-mq5q72.eu4oa1w0 > div.css-m05cy0.eu4oa1w0 > div.css-13hn6x1.eu4oa1w0 > button.css-r6nywx.e8ju0x51")
             if len(button) > 0:
                 button[0].click()
@@ -148,18 +86,18 @@ class Indeed:
 
     def application_end(self):
         time.sleep(5)
-        if len(self.find_elements(".ia-PostApply-footer > #returnToSearchButton")) == 0:
+        if len(self.driver.find_elements(".ia-PostApply-footer > #returnToSearchButton")) == 0:
             try:
-                add_cl_button = self.driver.find_elements(By.CSS_SELECTOR, "#additional_links_section_empty-documents")
+                add_cl_button = self.driver.find_elements("#additional_links_section_empty-documents")
                 if len(add_cl_button) > 0:
                     add_cl_button[0].click()
                     time.sleep(2)
-                    self.driver.find_element(By.CSS_SELECTOR, "#write-cover-letter-selection-card").click()
+                    self.driver.find_element("#write-cover-letter-selection-card").click()
                     time.sleep(2)
-                    self.driver.find_element(By.CSS_SELECTOR, "#ia-container .ia-BasePage-footer button").click()
+                    self.driver.find_element("#ia-container .ia-BasePage-footer button").click()
                     time.sleep(2)
                 time.sleep(2)
-                self.driver.find_element(By.CSS_SELECTOR, "#ia-container .ia-BasePage-footer button").click()
+                self.driver.find_element("#ia-container .ia-BasePage-footer button").click()
                 time.sleep(2)
                 print('Linkedin: +1 application')
             except:
@@ -168,33 +106,34 @@ class Indeed:
         time.sleep(2)
 
     def application_is_ended(self):
-        if len(self.driver.find_elements(By.CSS_SELECTOR, "#ia-container .ia-Review, .ia-PostApply-footer > #returnToSearchButton")) > 0:
+        if len(self.driver.find_elements("#ia-container .ia-Review, .ia-PostApply-footer > #returnToSearchButton")) > 0:
             self.application_end()
             return True
         else:
             return False
 
     def application_has_error(self):
-        if len(self.driver.find_elements(By.CSS_SELECTOR, 'svg.css-1bh9esk, #ia-container .ia-FileQuestion-errorText')) > 0:
+        if len(self.driver.find_elements('svg.css-1bh9esk, #ia-container .ia-FileQuestion-errorText')) > 0:
             self.application_exit()
             return True
         else:
             return False
 
     def application_question(self):
-        if len(self.driver.find_elements(By.CSS_SELECTOR, '#jobsearch-JapanPage .jobsearch-LeftPane')) > 0:
+        if len(self.driver.find_elements('#jobsearch-JapanPage .jobsearch-LeftPane')) > 0:
             return
         if self.application_is_ended():
             self.application_end()
-
         else:
-            nb_question = self.driver.find_elements(By.CSS_SELECTOR, '#ia-container .ia-Questions-item')
+            self.driver.click('#resume-display-buttonHeader')
+            nb_question = self.driver.find_elements('#ia-container .ia-Questions-item')
             for i_question in range(len(nb_question) + 2):
                 if self.application_has_error():
                     break
                 time.sleep(2)
                 # Checkbox Field
-                q_input = self.driver.find_elements(By.CSS_SELECTOR, '#ia-container .ia-Questions-item:nth-child(' + str(i_question) + ') fieldset label')
+                q_input = self.driver.find_elements(
+                    '#ia-container .ia-Questions-item:nth-child(' + str(i_question) + ') fieldset label')
                 if len(q_input) > 0:
                     if "civilité" in 'q_label':
                         pass
@@ -202,16 +141,17 @@ class Indeed:
                         q_input[0].click()
                     continue
                 # --------
-                q_labels = self.driver.find_elements(By.CSS_SELECTOR, '#ia-container .ia-Questions-item:nth-child(' + str(i_question) + ') label > span > span > span')
+                q_labels = self.driver.find_elements(
+                    '#ia-container .ia-Questions-item:nth-child(' + str(i_question) + ') label > span > span > span')
                 if len(q_labels) == 0:
                     continue
                 q_label = q_labels[0].get_property('innerText').lower()
                 print('q_label: ' + str(q_label))
                 # Textarea Field
-                q_input = self.driver.find_elements(By.CSS_SELECTOR, '#ia-container .ia-Questions-item:nth-child(' + str(
+                q_input = self.driver.find_elements('#ia-container .ia-Questions-item:nth-child(' + str(
                     i_question) + ') textarea')
                 if len(q_input) > 0:
-                    if "date" in self.find_element(
+                    if "date" in self.driver.find_element(
                             '#ia-container .ia-Questions-item:nth-child(' + str(i_question) + ') label').get_property(
                             'innerText'):
                         q_input[0].send_keys("25/07/2023\n"
@@ -221,12 +161,13 @@ class Indeed:
                         q_input[0].send_keys('Oui')
                     continue
                 # Select Field
-                q_input = self.driver.find_elements(By.CSS_SELECTOR, '#ia-container .ia-Questions-item:nth-child(' + str(
+                q_input = self.driver.find_elements('#ia-container .ia-Questions-item:nth-child(' + str(
                     i_question) + ') select')
                 if len(q_input) > 0:
                     q_input[0].click()
                     time.sleep(1)
-                    options = self.driver.find_elements(By.CSS_SELECTOR, '#ia-container .ia-Questions-item:nth-child(' + str(i_question) + ') select > option')
+                    options = self.driver.find_elements(
+                        '#ia-container .ia-Questions-item:nth-child(' + str(i_question) + ') select > option')
                     stop_o = False
                     for o in options:
                         for preset in self.presets:
@@ -237,16 +178,17 @@ class Indeed:
                         if stop_o:
                             break
                     if not stop_o:
-                        options[len(options)-1].click()
+                        options[len(options) - 1].click()
                     time.sleep(1)
                     continue
                 # File Field
-                q_input = self.driver.find_elements(By.CSS_SELECTOR, '#ia-container .ia-Questions-item:nth-child(' + str(
+                q_input = self.driver.find_elements('#ia-container .ia-Questions-item:nth-child(' + str(
                     i_question) + ') .ia-SmartApplyCard-headerButton')
                 if len(q_input) > 0:
                     continue
                 # Text Field
-                q_input = self.driver.find_elements(By.CSS_SELECTOR, '#ia-container .ia-Questions-item:nth-child(' + str(i_question) + ') input')
+                q_input = self.driver.find_elements(
+                    '#ia-container .ia-Questions-item:nth-child(' + str(i_question) + ') input')
                 if len(q_input) > 0 and q_input[0].get_property('value') == "":
                     if q_input[0].get_property('type') == "text":
                         ok = False
@@ -273,7 +215,7 @@ class Indeed:
                         q_input[0].send_keys(5)
                         continue
             try:
-                self.driver.find_element(By.CSS_SELECTOR, "#ia-container div.ia-BasePage-footer button").click()
+                self.driver.find_element("#ia-container div.ia-BasePage-footer button").click()
                 time.sleep(2)
             except:
                 pass
@@ -291,72 +233,73 @@ class Indeed:
             return
         # Cover Letter Step
         time.sleep(1)
-        tile_step = self.driver.find_elements(By.CSS_SELECTOR, "#ia-container h1")
+        tile_step = self.driver.find_elements("#ia-container h1")
         if len(tile_step) > 0 and "motiv" in tile_step[0].get_property('innerText'):
-            self.driver.find_element(By.CSS_SELECTOR, "#write-cover-letter-selection-card").click()
+            self.driver.find_element("#write-cover-letter-selection-card").click()
             time.sleep(2)
-            self.driver.find_element(By.CSS_SELECTOR, "#ia-container div.ia-BasePage-footer button").click()
+            self.driver.find_element("#ia-container div.ia-BasePage-footer button").click()
             time.sleep(1)
         # Submit
         time.sleep(3)
-        if len(self.driver.find_elements(By.CSS_SELECTOR, "#ia-container .ia-Review")) > 0:
+        if len(self.driver.find_elements("#ia-container .ia-Review")) > 0:
             self.application_end()
             return
         # Finish is not finish
         self.application_close()
 
     def application_loop(self):
-        self.driver.maximize_window()
         # Login
         self.login()
         # loop
         i_page = 0
+        self.driver.get(
+            f"https://fr.indeed.com/jobs?q={self.inputs['keywords'][random.randint(0, len(self.inputs['keywords']) - 1)]}&l={self.inputs['localization']}")
         while 1 == 1:
-            try:
-                self.driver.get(f"https://fr.indeed.com/jobs?q={self.inputs['keywords'][random.randint(0, len(self.inputs['keywords']) - 1)]}&l={self.inputs['localization']}")
-                time.sleep(3)
-                if i_page <= 6:
-                    i_page += 1
-                for job in self.driver.find_elements(By.CSS_SELECTOR, ".jobCard_mainContent .jobTitle a"):
-                    job_title = str(job.get_property('innerText')).lower()
-                    ok = False
-                    if len(self.setting['inputs']['included_keywords']) == 0:
-                        ok = True
-                    else:
-                        for ik in self.setting['inputs']['included_keywords']:
-                            if ik in job_title:
-                                ok = True
-                    for ek in self.setting['inputs']['excluded_keywords']:
-                        if ek in job_title:
-                            ok = False
-                    if not ok:
-                        continue
-                    # Close Popup
-                    self.close_popup()
-                    # Select Job
-                    job.click()
-                    time.sleep(3)
-                    # Begin Easy Apply
-                    begin_button = self.driver.find_elements(By.CSS_SELECTOR, "#indeedApplyButton")
-                    if len(begin_button) == 0:
-                        continue
-                    try:
-                        begin_button[0].click()
-                    except:
-                        continue
-                    for handle in self.driver.window_handles:
-                        self.driver.switch_to.window(handle)
-                        time.sleep(2)
-                    self.application()
-                    time.sleep(2)
+            time.sleep(3)
+            if i_page <= 6:
+                i_page += 1
+            time.sleep(2)
+            self.close_popup()
+            for job in self.driver.find_elements(".jobCard_mainContent .jobTitle a"):
+                job_title = str(job.get_property('innerText')).lower()
+                ok = False
+                if len(self.setting['inputs']['included_keywords']) == 0:
+                    ok = True
+                else:
+                    for ik in self.setting['inputs']['included_keywords']:
+                        if ik in job_title:
+                            ok = True
+                for ek in self.setting['inputs']['excluded_keywords']:
+                    if ek in job_title:
+                        ok = False
+                if not ok:
+                    continue
+                # Close Popup
+                self.close_popup()
+                # Select Job
+                time.sleep(2)
                 try:
-                    self.driver.find_element(By.CSS_SELECTOR, '#jobsearch-JapanPage .jobsearch-LeftPane > nav > div:nth-child(' + str(i_page + 1) + ')').click()
+                    job.click()
                 except:
                     continue
-                time.sleep(5)
+                time.sleep(3)
+                # Begin Easy Apply
+                begin_button = self.driver.find_elements("#indeedApplyButton")
+                if len(begin_button) == 0:
+                    continue
+                try:
+                    begin_button[0].click()
+                except:
+                    continue
+                for handle in self.driver.window_handles():
+                    self.driver.switch_to_window(handle)
+                    time.sleep(2)
+                self.application()
+            time.sleep(2)
+            try:
+                self.driver.find_element('#jobsearch-JapanPage .jobsearch-LeftPane > nav > div:nth-child(' + str(
+                    i_page + 1) + ')').click()
             except:
-                print('FatalError')
-                if not self.options['safe_mode']:
-                    break
-            if not self.options['infinite']:
-                break
+                self.driver.get(
+                    f"https://fr.indeed.com/jobs?q={self.inputs['keywords'][random.randint(0, len(self.inputs['keywords']) - 1)]}&l={self.inputs['localization']}")
+            time.sleep(2)

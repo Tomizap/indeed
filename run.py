@@ -1,11 +1,13 @@
 from indeed import *
 
+from users import users
+
 
 class AutoApply:
 
     def __init__(self, s):
         super(AutoApply, self).__init__()
-        self.indeed = Indeed(s, name="indeed")
+        self.indeed = Indeed(s)
 
     def start(self):
         self.indeed.application_loop()
@@ -14,10 +16,12 @@ class AutoApply:
         pass
 
 
+user_id = 8
+user = next((x for x in users if x['ID'] == user_id), None)
 config = {
     "inputs": {
-        "keywords": ['seo', 'webmarketing', 'wordpress', 'e-commerce'],
-        "localization": "Ile-de-France",
+        "keywords": ['alternance commerce', 'alternance communication', 'alternance marketing'],
+        "localization": "Clichy (92)",
         "excluded_keywords": ['stag'],
         "included_keywords": [],
         "contract_type": [],
@@ -33,20 +37,15 @@ config = {
         "safe_mode": False
     },
     "presets": {
-        "phone": "0665774180",
-        "name": "Tom",
-        "nom": "Tom",
+        "phone": user['phone'],
+        "name": user['firstname'],
+        "nom": user['firstname'],
         "pays": "fr",
-        "mail": "zaptom.pro@gmail.com",
-        "twitter": "https://twitter.com/tom_zapico",
-        "linkedin": "https://www.linkedin.com/in/tom-zapico/",
-        "internet": "https://tom-zapico.com",
-        "civilité": ["m", "homme"]
+        "mail": user['email'],
+        "linkedin": user['linkedin'],
+        "internet": user['website'],
+        "civilité": ["homme", "m."]
     },
-    "user": {
-        "email": "t.zapico@ldeclic.fr",
-        "password": "Tom01032000",
-        "phone": "0665774180"
-    }
+    "user": user
 }
 AutoApply(config).start()
